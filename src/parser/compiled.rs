@@ -13,10 +13,14 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 use std::str;
-use nom::{le_i16, le_i32};
+use nom::number::complete::{le_i16, le_i32};
 
 use names;
 use capability::Value;
+
+macro_rules! apply (
+	($i:expr, $fun:expr, $($args:expr),* ) => ( $fun( $i, $($args),* ) );
+);
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Database<'a> {
@@ -205,12 +209,18 @@ named!(size<usize>,
 		_           => None }));
 
 named_args!(capability(bits: usize)<i32>,
-	alt!(
-		cond_reduce!(bits == 16,
-			map_opt!(le_i16, |n| if n >= -2 { Some(n as i32) } else { None })) |
+	do_parse!(
+		opt: alt!(
+			cond!(bits == 16,
+				map_opt!(le_i16, |n| if n >= -2 { Some(n as i32) } else { None })) |
 
-		cond_reduce!(bits == 32,
-			map_opt!(le_i32, |n| if n >= -2 { Some(n) } else { None }))));
+			cond!(bits == 32,
+				map_opt!(le_i32, |n| if n >= -2 { Some(n) } else { None }))) >>
+
+		(match opt {
+		Some(x) => x,
+		None => 0,
+		})));
 
 #[cfg(test)]
 mod test {

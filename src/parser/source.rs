@@ -14,7 +14,8 @@
 
 use std::borrow::Cow;
 use std::str;
-use nom::{is_digit, eol};
+use nom::character::complete::line_ending;
+use nom::character::is_digit;
 use parser::util::{is_printable_no_pipe, is_printable_no_comma, is_printable_no_control};
 use parser::util::{is_eol, is_ws, ws, end};
 use parser::util::unescape;
@@ -41,7 +42,8 @@ named!(pub parse<Item>,
 named!(comment<Item>,
 	do_parse!(
 		tag!("#") >>
-		content: map_res!(take_until_and_consume!("\n"), str::from_utf8) >>
+		content: map_res!(take_until!("\n"), str::from_utf8) >>
+		take_while!(is_ws) >>
 		take_while!(is_eol) >>
 
 		(Item::Comment(content.trim()))));
@@ -57,8 +59,9 @@ named!(definition<Item>,
 			unsafe { str::from_utf8_unchecked(n) }) >>
 
 		tag!(",") >>
+
 		take_while!(is_ws) >>
-		eol >> take_while!(is_eol) >>
+		line_ending >> take_while!(is_eol) >>
 
 		({
 			let mut aliases = content.split(|c| c == '|').map(|n| n.trim()).collect::<Vec<_>>();
@@ -109,7 +112,7 @@ named!(entry<Item>,
 
 				(Item::String(name, unescape(value))))) >>
 
-		take_while!(is_ws) >> end >> take_while!(is_eol) >>
+		take_while!(is_ws) >> end >> opt!(complete!(take_while!(is_eol))) >>
 
 		(value)));
 

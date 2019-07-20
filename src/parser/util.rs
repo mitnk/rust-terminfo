@@ -15,7 +15,8 @@
 use std::str;
 use std::u8;
 use std::borrow::Cow;
-use nom::{eol, is_digit};
+use nom::character::complete::line_ending;
+use nom::character::is_digit;
 
 macro_rules! take_until_or_eof (
   ($i:expr, $substr:expr) => (
@@ -117,7 +118,7 @@ named!(pub ws<char>,
 	alt!(char!(' ') | char!('\t')));
 
 named!(pub end,
-	alt!(eof!() | eol));
+	alt!(eof!() | line_ending));
 
 #[inline]
 pub fn number(i: &[u8]) -> i32 {
